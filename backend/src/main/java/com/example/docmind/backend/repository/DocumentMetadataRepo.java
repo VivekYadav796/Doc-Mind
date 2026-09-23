@@ -1,5 +1,4 @@
-package com.example.docmind.backend.respository;
-
+package com.example.docmind.backend.repository;
 
 import com.example.docmind.backend.entity.DocumentMetadata;
 import com.example.docmind.backend.entity.DocumentStatus;
@@ -16,9 +15,8 @@ public interface DocumentMetadataRepo extends JpaRepository<DocumentMetadata, UU
 
     List<DocumentMetadata> findAllByOrderByCreatedAtDesc();
 
+    // List<DocumentMetadata> findByUserOrderByCreatedAtDesc(User user);
 
-    //List<DocumentMetadata> findByUserOrderByCreatedAtDesc(User user);
-
-    //Optional<DocumentMetadata> findByIdAndUser(UUID id, User user);
+    // Optional<DocumentMetadata> findByIdAndUser(UUID id, User user);
 
 }

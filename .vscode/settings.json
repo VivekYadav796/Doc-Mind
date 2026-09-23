@@ -8,5 +8,5 @@
             "default": true
         }
     ],
-    "java.jdt.ls.vmargs": "-XX:+UseParallelGC -Dsun.zip.disableMemoryMapping=true -Xmx2G -Xms256m"
+    "java.jdt.ls.vmargs": "-XX:+UseParallelGC -Dsun.zip.disableMemoryMapping=true -Xmx8G -Xms256m"
 }
