@@ -15,7 +15,7 @@ public class ChatController {
 
   @PostMapping 
   public  ResponseEntity<String> chat(){
-    return ResponseEntity.ok("This is just testing....");
+    return ResponseEntity.ok("This is just testing...");
   }
     
 }
