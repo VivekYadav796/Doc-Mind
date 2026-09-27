@@ -1,5 +1,6 @@
 package com.example.docmind.backend.service;
 
+import com.example.docmind.backend.dto.DocumentChunkDto;
 import com.example.docmind.backend.dto.DocumentMetadataDto;
 import com.example.docmind.backend.dto.DocumentResponseDto;
 import com.example.docmind.backend.entity.DocumentMetadata;
@@ -7,6 +8,7 @@ import com.example.docmind.backend.entity.DocumentStatus;
 import com.example.docmind.backend.exception.DocumentProcessingException;
 import com.example.docmind.backend.exception.ResourceNotFoundException;
 import com.example.docmind.backend.repository.DocumentMetadataRepo;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -33,6 +35,7 @@ public class DocumentMetadataService {
     private final DocumentIngestionService ingestionService;
     private final ModelMapper modelMapper;
     private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
 
     // method to upload and parse document
     @Transactional
@@ -108,6 +111,49 @@ public class DocumentMetadataService {
                 .orElseThrow(() -> new ResourceNotFoundException("Document with given id not found !!"));
         return modelMapper.map(documentMetadata, DocumentMetadataDto.class);
 
+    }
+
+    public List<DocumentChunkDto> getDocumentChunks(UUID id) {
+        documentMetadataRepo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Document with given id not found !!"));
+
+        String sql = "SELECT id, content, metadata FROM vector_store WHERE metadata->>'documentId' = ? ORDER BY CAST(COALESCE(metadata->>'chunkIndex', '0') AS INTEGER) ASC";
+        try {
+            return jdbcTemplate.query(sql, (rs, rowNum) -> {
+                String chunkId = rs.getString("id");
+                String content = rs.getString("content");
+                String metaStr = rs.getString("metadata");
+                java.util.Map<String, Object> metaMap = new java.util.HashMap<>();
+                Integer chunkIndex = null;
+                Integer pageNumber = null;
+                if (metaStr != null && !metaStr.isBlank()) {
+                    try {
+                        metaMap = objectMapper.readValue(metaStr, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+                        if (metaMap.get("chunkIndex") instanceof Number n) {
+                            chunkIndex = n.intValue();
+                        }
+                        if (metaMap.get("pageNumber") instanceof Number n) {
+                            pageNumber = n.intValue();
+                        } else if (metaMap.get("page_number") instanceof Number n) {
+                            pageNumber = n.intValue();
+                        }
+                    } catch (Exception e) {
+                        log.debug("Could not parse metadata JSON: {}", e.getMessage());
+                    }
+                }
+                return DocumentChunkDto.builder()
+                        .id(chunkId)
+                        .documentId(id)
+                        .chunkIndex(chunkIndex != null ? chunkIndex : rowNum)
+                        .pageNumber(pageNumber)
+                        .snippet(content)
+                        .metadata(metaMap)
+                        .build();
+            }, id.toString());
+        } catch (Exception e) {
+            log.error("Failed to query chunks from vector_store for document {}: {}", id, e.getMessage());
+            return java.util.Collections.emptyList();
+        }
     }
 
     @Transactional

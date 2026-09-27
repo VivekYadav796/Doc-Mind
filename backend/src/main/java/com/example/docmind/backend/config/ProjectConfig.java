@@ -1,5 +1,18 @@
 package com.example.docmind.backend.config;
 
+import org.modelmapper.ModelMapper;
+import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
+import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.ChatMemoryRepository;
+import org.springframework.ai.chat.memory.InMemoryChatMemoryRepository;
+import org.springframework.ai.chat.memory.MessageWindowChatMemory;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
@@ -7,18 +20,18 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
-import org.springframework.ai.chat.client.ChatClient;
-import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
-import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
-import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 //import org.springframework.ui.ModelMap;
 
 @Slf4j
 @Configuration
 public class ProjectConfig {
+
+        @Bean
+        public ObjectMapper objectMapper() {
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.findAndRegisterModules();
+                return mapper;
+        }
 
         @Bean
         public ChatClient chatClient(ChatClient.Builder builder, ChatMemory memory) {
@@ -80,6 +93,21 @@ public class ProjectConfig {
         }
 
         @Bean
+        public ChatMemoryRepository chatMemoryRepository() {
+                // In-memory repository for storing chat messages
+                return new InMemoryChatMemoryRepository();
+        }
+
+        @Bean
+        public ChatMemory chatMemory(ChatMemoryRepository repository) {
+                // Sliding window chat memory keeping last 20 messages
+                return MessageWindowChatMemory.builder()
+                        .maxMessages(20)
+                        .chatMemoryRepository(repository)
+                        .build();
+        }
+
+         @Bean
         public ModelMapper modelMapper() {
                 return new ModelMapper();
         }
