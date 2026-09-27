@@ -7,12 +7,14 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
+import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 
 import java.util.Collections;
@@ -22,6 +24,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Validated
 @RequiredArgsConstructor
 public class RagService {
     private static final Logger log = LoggerFactory.getLogger(RagService.class);
@@ -44,11 +47,23 @@ public class RagService {
 
         String prompt = buildPrompt(request.getQuestion(), contextText);
 
-        String answer = this.chatClient.prompt().user(prompt).call().content();
+        // Ensure we always have a non-null conversationId before hitting the
+        // MessageChatMemoryAdvisor, which requires ChatMemory.CONVERSATION_ID
+        // to be present in the advisor context — otherwise it throws
+        // "conversationId cannot be null".
+        String conversationId = (request.getConversationId() != null && !request.getConversationId().isBlank())
+                ? request.getConversationId()
+                : UUID.randomUUID().toString();
+
+        String answer = this.chatClient.prompt()
+                .user(prompt)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
+                .call()
+                .content();
+
         long responseTime = System.currentTimeMillis() - startTime;
         log.info("Completed Q&A in {} ms with {} citations", responseTime, citationDtos.size());
-        return ChatResponseDto.builder().answer(answer).conversationId(
-                request.getConversationId() != null ? request.getConversationId() : UUID.randomUUID().toString())
+        return ChatResponseDto.builder().answer(answer).conversationId(conversationId)
                 .citations(citationDtos).responseTimeMs(responseTime).build();
 
     }
@@ -63,8 +78,14 @@ public class RagService {
                 requestDto.getMinSimilarity());
         String contextText = buildContextString(relevantDocuments);
         String userPrompt = buildPrompt(requestDto.getQuestion(), contextText);
+
+        String conversationId = (requestDto.getConversationId() != null && !requestDto.getConversationId().isBlank())
+                ? requestDto.getConversationId()
+                : UUID.randomUUID().toString();
+
         return chatClient.prompt()
                 .user(userPrompt)
+                .advisors(a -> a.param(ChatMemory.CONVERSATION_ID, conversationId))
                 .stream()
                 .content();
 
