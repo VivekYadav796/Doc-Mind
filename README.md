@@ -19,6 +19,9 @@ DocMind is a full-stack Retrieval-Augmented Generation (RAG) application that le
 | LLM / Embeddings |  Gemini flash 3.8 model , text-embedding-3-small] |
 | Containerization | Docker, Docker Compose |
 
+<img width="3170" height="1596" alt="docmind_rag_workflow" src="https://github.com/user-attachments/assets/f09be016-456e-44cb-89ad-894af3fb7837" />
+
+
 <img width="1920" height="901" alt="screencapture-localhost-3000-2026-09-27-19_03_17" src="https://github.com/user-attachments/assets/6eafc603-c8f7-490c-b226-d13bc4ef2fc5" />
 
    
@@ -33,5 +36,3 @@ DocMind is a full-stack Retrieval-Augmented Generation (RAG) application that le
 
 <img width="1920" height="4511" alt="screencapture-localhost-3000-2026-09-27-19_05_00" src="https://github.com/user-attachments/assets/cd45fa69-66fe-4328-bcbe-837cc33aa4c2" />
 
-
-<img width="3170" height="1596" alt="docmind_rag_workflow" src="https://github.com/user-attachments/assets/f09be016-456e-44cb-89ad-894af3fb7837" />
